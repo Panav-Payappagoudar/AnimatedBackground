@@ -1,39 +1,27 @@
-# React + Vite
+# Animated Background (React Three Fiber)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A dynamic, scroll-interactive 3D particle galaxy built with React, Three.js, and React Three Fiber.
 
-Currently, two official plugins are available:
+## How to Run Locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Follow these exact steps in your command prompt to get the project ready and running:
 
-## Getting Started
-
-To run this project locally, follow these steps:
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Panav-Payappagoudar/AnimatedBackground.git
-   ```
-2. **Navigate to the project directory:**
-   ```bash
-   cd AnimatedBackground
-   ```
-3. **Install dependencies:**
+1. **Install Dependencies**
+   Run the following command to download and install all required packages (including React, Three.js, and React Three Fiber):
    ```bash
    npm install
    ```
-4. **Run the development server:**
+
+2. **Start the Development Server**
+   Once the installation is complete, start the local development server by running:
    ```bash
    npm run dev
    ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser to view the application.
+3. **View the Website**
+   Open your browser and navigate to the local URL provided in your terminal (usually `http://localhost:5173/`).
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Features
+- **Industry Standard 3D**: Uses `@react-three/fiber` for rock-solid performance and zero animation-loop freezing.
+- **Scroll-Linked Parallax**: The camera smoothly zooms and orbits the 3D galaxy as you scroll down the page.
+- **Fluid WebGL Rendering**: Powered by Three.js `AdditiveBlending` for beautiful glowing particles.
