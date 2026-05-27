@@ -1,106 +1,67 @@
 import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import { MeshDistortMaterial, Environment } from '@react-three/drei';
 import './BackgroundScene.css';
 
-const count = 50000;
-
-// Generate the galaxy structure once outside the component
-const generateGalaxy = () => {
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  
-  const colorInside = new THREE.Color('#ffffff');
-  const colorOutside = new THREE.Color('#3a2e5d');
-  
-  for(let i=0; i<count; i++) {
-    const radius = Math.random() * 12;
-    const branchAngle = (i % 3) / 3 * Math.PI * 2;
-    const spinAngle = radius * 1;
-    
-    const randomX = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * 0.5 * radius;
-    const randomY = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * 0.5 * radius;
-    const randomZ = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * 0.5 * radius;
-    
-    positions[i * 3] = Math.cos(branchAngle + spinAngle) * radius + randomX;
-    positions[i * 3 + 1] = randomY;
-    positions[i * 3 + 2] = Math.sin(branchAngle + spinAngle) * radius + randomZ;
-    
-    const mixedColor = colorInside.clone().lerp(colorOutside, radius / 12);
-    colors[i * 3] = mixedColor.r;
-    colors[i * 3 + 1] = mixedColor.g;
-    colors[i * 3 + 2] = mixedColor.b;
-  }
-  return { positions, colors };
-};
-
-const galaxyData = generateGalaxy();
-
-const Galaxy = () => {
-  const pointsRef = useRef();
-  
-  const positions = galaxyData.positions;
-  const colors = galaxyData.colors;
+const LiquidTerrain = () => {
+  const meshRef = useRef();
 
   // Animation loop provided perfectly by React Three Fiber
   useFrame((state) => {
-    if (!pointsRef.current) return;
+    if (!meshRef.current) return;
     
-    // 1. Rotate the galaxy over time
-    const time = state.clock.elapsedTime;
-    pointsRef.current.rotation.y = time * 0.15;
-    
-    // 2. Parallax and scroll calculations
+    // Parallax and scroll calculations
     const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
-    const scrollProgress = scrollY * 0.005;
     
-    // Zoom in as we scroll
-    const radius = Math.max(2, 20 - (scrollProgress * 15));
-    // Rotate camera around the scene as we scroll
-    const angle = scrollProgress * 3.0;
-
+    // As we scroll, we fly FORWARD over the liquid terrain
+    // We map scrollY to the camera's Z position (moving negative Z)
+    const scrollProgress = scrollY * 0.01;
+    
+    // Base camera positions
+    const baseZ = 20;
+    const baseY = 5;
+    
+    // Target camera positions based on scroll
+    const targetCamZ = baseZ - scrollProgress * 15; // Fly forward
+    const targetCamY = baseY - Math.min(scrollProgress * 2, 3); // Dip down slightly, but cap it
+    
     // React Three Fiber provides normalized mouse coordinates (-1 to 1) via state.pointer
-    const targetX = state.pointer.x * 5;
-    const targetY = state.pointer.y * 5;
-
-    // Calculate final target camera position
-    const targetCamX = (Math.sin(angle) * radius) + targetX;
-    const targetCamZ = (Math.cos(angle) * radius);
-    const targetCamY = -targetY + 5 - (scrollProgress * 3);
+    const targetX = state.pointer.x * 3;
+    const targetY = state.pointer.y * 3;
 
     // Smoothly interpolate current camera position towards target
-    state.camera.position.x += (targetCamX - state.camera.position.x) * 0.05;
-    state.camera.position.y += (targetCamY - state.camera.position.y) * 0.05;
+    // We add the mouse target offsets to the base flight path
+    state.camera.position.x += (targetX - state.camera.position.x) * 0.05;
+    state.camera.position.y += ((targetCamY - targetY) - state.camera.position.y) * 0.05;
     state.camera.position.z += (targetCamZ - state.camera.position.z) * 0.05;
     
-    // Always look at the center of the galaxy
-    state.camera.lookAt(0, 0, 0);
+    // The camera looks slightly down and forward
+    // As we fly forward (Z decreases), our look target also moves forward
+    state.camera.lookAt(targetX * 0.5, 0, targetCamZ - 10);
   });
 
   return (
-    <points ref={pointsRef} rotation-x={Math.PI * 0.1}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-color"
-          count={count}
-          array={colors}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.05}
-        vertexColors={true}
-        transparent={true}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
+    <mesh 
+      ref={meshRef} 
+      rotation={[-Math.PI / 2, 0, 0]} // Lay it flat like the ground
+      position={[0, -2, 0]} // Push it slightly below the camera
+    >
+      {/* A massive high-resolution plane */}
+      <planeGeometry args={[150, 150, 128, 128]} />
+      
+      {/* 
+        MeshDistortMaterial is a premium drei component that 
+        automatically displaces vertices with fluid noise
+      */}
+      <MeshDistortMaterial
+        color="#3a2e5d" // Deep dark purple
+        emissive="#06040a"
+        roughness={0.1} // Very smooth, shiny liquid
+        metalness={0.8} // Highly reflective
+        distort={0.4} // Intensity of the liquid waves
+        speed={1.5} // Speed of the animation
       />
-    </points>
+    </mesh>
   );
 };
 
@@ -112,8 +73,32 @@ const BackgroundScene = () => {
         gl={{ antialias: true, alpha: true }}
       >
         <color attach="background" args={['#06040A']} />
-        <fog attach="fog" args={['#06040A', 0.001]} />
-        <Galaxy />
+        
+        {/* Deep fog so the terrain fades off beautifully in the distance */}
+        <fog attach="fog" args={['#06040A', 5, 40]} />
+        
+        {/* Premium Lighting Setup for shiny liquid */}
+        <ambientLight intensity={0.2} color="#ffffff" />
+        
+        {/* Main highlight light (simulates a moon or distant bright source) */}
+        <directionalLight 
+          position={[10, 20, 5]} 
+          intensity={1.5} 
+          color="#9b88ed" 
+        />
+        
+        {/* Secondary rim light for beautiful edge reflections */}
+        <pointLight 
+          position={[-10, 5, -10]} 
+          intensity={2} 
+          color="#ff7eb3" 
+          distance={50}
+        />
+
+        {/* Adds realistic environmental reflections to the metalness of the liquid */}
+        <Environment preset="city" />
+
+        <LiquidTerrain />
       </Canvas>
     </div>
   );
