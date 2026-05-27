@@ -1,6 +1,6 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { MeshTransmissionMaterial, Environment, Float, Sphere, TorusKnot } from '@react-three/drei';
+import { MeshTransmissionMaterial, Environment, Float, TorusKnot } from '@react-three/drei';
 import './BackgroundScene.css';
 
 // Background orb removed as requested
@@ -9,10 +9,12 @@ const GlassObjects = () => {
   const groupRef = useRef();
   const knotRef = useRef();
   const icosaRef = useRef();
+  const octaRef = useRef();
+  const cylRef = useRef();
 
   // Animation loop for buttery smooth, heavy parallax
   useFrame((state) => {
-    if (!groupRef.current || !knotRef.current || !icosaRef.current) return;
+    if (!groupRef.current || !knotRef.current || !icosaRef.current || !octaRef.current || !cylRef.current) return;
     
     // Scroll calculations for heavy parallax
     const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
@@ -25,6 +27,12 @@ const GlassObjects = () => {
     
     icosaRef.current.rotation.x = time * 0.2 - scrollRotation;
     icosaRef.current.rotation.z = time * 0.1 + scrollRotation * 0.5;
+
+    octaRef.current.rotation.y = time * 0.3 + scrollRotation;
+    octaRef.current.rotation.x = time * 0.1;
+
+    cylRef.current.rotation.x = time * 0.1 - scrollRotation * 0.5;
+    cylRef.current.rotation.z = time * 0.2 + scrollRotation;
 
     // React Three Fiber provides normalized mouse coordinates (-1 to 1)
     const targetX = state.pointer.x * 1.5;
@@ -66,13 +74,50 @@ const GlassObjects = () => {
           <MeshTransmissionMaterial {...glassMaterialProps} />
         </mesh>
       </Float>
+      {/* New Shape: Floating Octahedron */}
+      <Float speed={2.5} rotationIntensity={2} floatIntensity={1.5}>
+        <mesh ref={octaRef} position={[-4, 2, -3]}>
+          <octahedronGeometry args={[1.8, 0]} />
+          <MeshTransmissionMaterial {...glassMaterialProps} />
+        </mesh>
+      </Float>
+      
+      {/* New Shape: Soft Cylinder */}
+      <Float speed={1} rotationIntensity={1.2} floatIntensity={2}>
+        <mesh ref={cylRef} position={[3, 3, -4]}>
+          <cylinderGeometry args={[1.2, 1.2, 3, 32]} />
+          <MeshTransmissionMaterial {...glassMaterialProps} />
+        </mesh>
+      </Float>
     </group>
   );
 };
 
 const BackgroundScene = () => {
+  const containerRef = useRef();
+
+  // Track mouse movement to drive the dynamic CSS gradient
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!containerRef.current) return;
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      containerRef.current.style.setProperty('--mouse-x', `${x}%`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}%`);
+    };
+    
+    // Set initial center position
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--mouse-x', '50%');
+      containerRef.current.style.setProperty('--mouse-y', '50%');
+    }
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   return (
-    <div className="background-scene-container">
+    <div className="background-scene-container" ref={containerRef}>
       <Canvas
         camera={{ position: [0, 0, 15], fov: 45 }} // Tighter FOV for premium cinematic feel
         gl={{ antialias: true, alpha: true }}
