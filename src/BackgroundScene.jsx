@@ -8,13 +8,12 @@ import './BackgroundScene.css';
 const GlassObjects = () => {
   const groupRef = useRef();
   const knotRef = useRef();
-  const icosaRef = useRef();
-  const octaRef = useRef();
-  const cylRef = useRef();
+  const sphereRef = useRef();
+  const ringRef = useRef();
 
   // Animation loop for buttery smooth, heavy parallax
   useFrame((state) => {
-    if (!groupRef.current || !knotRef.current || !icosaRef.current || !octaRef.current || !cylRef.current) return;
+    if (!groupRef.current || !knotRef.current || !sphereRef.current || !ringRef.current) return;
     
     // Scroll calculations for heavy parallax
     const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
@@ -25,14 +24,11 @@ const GlassObjects = () => {
     knotRef.current.rotation.x = time * 0.1 + scrollRotation;
     knotRef.current.rotation.y = time * 0.15 + scrollRotation * 1.5;
     
-    icosaRef.current.rotation.x = time * 0.2 - scrollRotation;
-    icosaRef.current.rotation.z = time * 0.1 + scrollRotation * 0.5;
+    sphereRef.current.rotation.x = time * 0.2 - scrollRotation;
+    sphereRef.current.rotation.z = time * 0.1 + scrollRotation * 0.5;
 
-    octaRef.current.rotation.y = time * 0.3 + scrollRotation;
-    octaRef.current.rotation.x = time * 0.1;
-
-    cylRef.current.rotation.x = time * 0.1 - scrollRotation * 0.5;
-    cylRef.current.rotation.z = time * 0.2 + scrollRotation;
+    ringRef.current.rotation.y = time * 0.3 + scrollRotation;
+    ringRef.current.rotation.x = time * 0.1;
 
     // React Three Fiber provides normalized mouse coordinates (-1 to 1)
     const targetX = state.pointer.x * 1.5;
@@ -67,25 +63,18 @@ const GlassObjects = () => {
         </TorusKnot>
       </Float>
 
-      {/* Heavy, floating Icosahedron */}
+      {/* Heavy, floating Smooth Sphere (Looks like a water drop) */}
       <Float speed={2} rotationIntensity={1.5} floatIntensity={1.5}>
-        <mesh ref={icosaRef} position={[4, -2, -2]}>
-          <icosahedronGeometry args={[2.5, 0]} />
-          <MeshTransmissionMaterial {...glassMaterialProps} />
-        </mesh>
-      </Float>
-      {/* New Shape: Floating Octahedron */}
-      <Float speed={2.5} rotationIntensity={2} floatIntensity={1.5}>
-        <mesh ref={octaRef} position={[-4, 2, -3]}>
-          <octahedronGeometry args={[1.8, 0]} />
+        <mesh ref={sphereRef} position={[4, -2, -2]}>
+          <sphereGeometry args={[2.2, 64, 64]} />
           <MeshTransmissionMaterial {...glassMaterialProps} />
         </mesh>
       </Float>
       
-      {/* New Shape: Soft Cylinder */}
-      <Float speed={1} rotationIntensity={1.2} floatIntensity={2}>
-        <mesh ref={cylRef} position={[3, 3, -4]}>
-          <cylinderGeometry args={[1.2, 1.2, 3, 32]} />
+      {/* Heavy, floating Glass Ring */}
+      <Float speed={2.5} rotationIntensity={2} floatIntensity={1.5}>
+        <mesh ref={ringRef} position={[-4, 2, -3]}>
+          <torusGeometry args={[1.8, 0.6, 64, 128]} />
           <MeshTransmissionMaterial {...glassMaterialProps} />
         </mesh>
       </Float>
