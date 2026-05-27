@@ -1,82 +1,100 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { MeshDistortMaterial } from '@react-three/drei';
-import * as THREE from 'three';
+import { Environment, Float } from '@react-three/drei';
 import './BackgroundScene.css';
 
-// A massive, fluid sphere that we place the camera INSIDE of.
-// Because the camera is inside, the walls of the sphere become the entire screen.
-const ImmersiveCavern = () => {
-  const cavernRef = useRef();
+// A massive, infinite corridor of dark, glossy monolithic pillars
+const ObsidianCorridor = () => {
+  const groupRef = useRef();
   
-  // Scrollytelling Animation Loop
+  // Generate a random but deterministic layout of massive pillars
+  const pillars = useMemo(() => {
+    const arr = [];
+    
+    // Deterministic pseudo-random generator to satisfy React strict purity rules
+    const pseudoRandom = (seed) => {
+      const x = Math.sin(seed * 999.99) * 10000;
+      return x - Math.floor(x);
+    };
+
+    for (let i = 0; i < 60; i++) {
+      // Scatter pillars along a massive Z-axis track
+      const zPos = 10 - (i * 3.5); 
+      
+      // Randomly position on left or right to form a corridor
+      const isLeft = pseudoRandom(i * 1.1) > 0.5;
+      const xPos = isLeft ? -2 - pseudoRandom(i * 1.2) * 8 : 2 + pseudoRandom(i * 1.3) * 8;
+      
+      // Randomize height and width of the monoliths
+      const height = 10 + pseudoRandom(i * 1.4) * 20;
+      const width = 1 + pseudoRandom(i * 1.5) * 3;
+      const depth = 1 + pseudoRandom(i * 1.6) * 3;
+      
+      // Randomize subtle rotation
+      const rotY = (pseudoRandom(i * 1.7) - 0.5) * 0.5;
+
+      arr.push({ x: xPos, y: 0, z: zPos, w: width, h: height, d: depth, ry: rotY });
+    }
+    return arr;
+  }, []);
+
+  // Cinematic Scrollytelling Camera Animation
   useFrame((state) => {
-    if (!cavernRef.current) return;
+    if (!groupRef.current) return;
     
-    // 1. Base organic movement so the walls are always flowing like liquid
-    const time = state.clock.elapsedTime;
-    
-    // 2. Calculate scroll percentage for the Apple-style timeline
+    // 1. Calculate scroll percentage for the Apple-style timeline
     const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
     const maxScroll = Math.max((document.documentElement?.scrollHeight || 3000) - window.innerHeight, 1000);
-    const scrollFraction = Math.max(0, Math.min(scrollY / maxScroll, 1)); // 0 to 1
+    const scrollFraction = Math.max(0, Math.min(scrollY / maxScroll, 1));
     
-    // 3. Cinematic Full-Screen Warping
-    // As you scroll, the entire cavern violently spins and warps around you
-    const scrollRotation = scrollFraction * Math.PI * 2; // Full 360 spin during scroll
-    cavernRef.current.rotation.y = time * 0.1 + scrollRotation;
-    cavernRef.current.rotation.x = time * 0.05 + (scrollRotation * 0.5);
-
-    // 4. Camera FOV Zoom Effect
-    // Start with a wide view (75), then zoom incredibly deep (30) at the end of the scroll
-    const targetFov = 75 - (scrollFraction * 45); 
-    state.camera.fov += (targetFov - state.camera.fov) * 0.05;
-    state.camera.updateProjectionMatrix();
-
-    // 5. Aggressive Camera Panning
-    // The camera physically moves around inside the sphere based on scroll
-    const targetCamX = Math.sin(scrollFraction * Math.PI) * 4;
-    const targetCamZ = Math.cos(scrollFraction * Math.PI) * 4;
+    // 2. Fly the camera down the massive Z-axis corridor
+    // Start at Z=15, fly down to Z=-180
+    const targetCamZ = 15 - (scrollFraction * 195);
+    
+    // 3. Cinematic X/Y Panning
+    // As you fly, gently weave left and right between the pillars
+    const targetCamX = Math.sin(scrollFraction * Math.PI * 4) * 2;
+    // Gently bob up and down
+    const targetCamY = Math.cos(scrollFraction * Math.PI * 8) * 1;
     
     // Combine scroll panning with dynamic mouse tracking
     const mouseX = state.pointer.x * 2;
     const mouseY = state.pointer.y * 2;
 
+    // Smoothly interpolate camera to the cinematic target
     state.camera.position.x += ((targetCamX + mouseX) - state.camera.position.x) * 0.05;
-    state.camera.position.y += (mouseY - state.camera.position.y) * 0.05;
-    state.camera.position.z += ((targetCamZ) - state.camera.position.z) * 0.05;
+    state.camera.position.y += ((targetCamY + mouseY) - state.camera.position.y) * 0.05;
+    state.camera.position.z += (targetCamZ - state.camera.position.z) * 0.05;
     
-    // Always look at the dead center of the cavern as we spin around it
-    state.camera.lookAt(0, 0, 0);
+    // Look slightly ahead and weave with the path
+    state.camera.lookAt(targetCamX * 0.5, targetCamY * 0.5, targetCamZ - 15);
   });
 
   return (
-    <mesh ref={cavernRef}>
-      {/* Massive sphere that completely engulfs the camera */}
-      <sphereGeometry args={[15, 128, 128]} />
-      
-      {/* 
-        MeshDistortMaterial physically warps the vertices like a fluid.
-        By setting side to BackSide, we render the INSIDE walls of the sphere!
-      */}
-      <MeshDistortMaterial
-        side={THREE.BackSide} 
-        color="#ffffff"
-        transparent={true}
-        opacity={0.25} // Soft frosted transparency
-        metalness={0.1} // REMOVED mirror effect so it doesn't reflect a literal city
-        roughness={0.6} // Frosted, soft light scattering
-        distort={0.6} // Aggressive liquid warping
-        speed={1.5} // Smooth fluid speed
-      />
-    </mesh>
+    <group ref={groupRef}>
+      {pillars.map((p, i) => (
+        <Float key={i} speed={0.5} rotationIntensity={0.1} floatIntensity={0.2}>
+          <mesh position={[p.x, p.y, p.z]} rotation={[0, p.ry, 0]}>
+            {/* Massive geometric pillar */}
+            <boxGeometry args={[p.w, p.h, p.d]} />
+            {/* Ultra-premium dark obsidian glass material */}
+            <meshStandardMaterial 
+              color="#020202"
+              metalness={0.9}
+              roughness={0.1}
+              envMapIntensity={1.5}
+            />
+          </mesh>
+        </Float>
+      ))}
+    </group>
   );
 };
 
 const BackgroundScene = () => {
   const containerRef = useRef();
 
-  // Track mouse movement to drive the dynamic CSS gradient underneath the cavern
+  // Track mouse movement to drive the dynamic CSS gradient
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!containerRef.current) return;
@@ -99,28 +117,28 @@ const BackgroundScene = () => {
   return (
     <div className="background-scene-container" ref={containerRef}>
       <Canvas
-        camera={{ position: [0, 0, 5], fov: 75 }} // Start inside the sphere
+        camera={{ position: [0, 0, 15], fov: 60 }} 
         gl={{ antialias: true, alpha: true }}
       >
-        <ambientLight intensity={0.5} />
+        <ambientLight intensity={0.2} />
         
-        {/* Intense studio lights to catch the interior ripples of the cavern */}
+        {/* Sharp, dramatic studio lights to catch the edges of the obsidian */}
         <directionalLight 
-          position={[10, 10, 10]} 
+          position={[10, 20, 10]} 
           intensity={3} 
           color="#ffffff" 
         />
-        
-        <pointLight 
-          position={[-5, -5, -5]} 
-          intensity={5} 
-          color="#ff4081" 
+        <directionalLight 
+          position={[-10, 20, -10]} 
+          intensity={2} 
+          color="#aa88ff" 
         />
-
-        {/* Removed the city Environment map so it's purely abstract */}
         
-        {/* The full-screen immersive liquid environment */}
-        <ImmersiveCavern />
+        {/* Adds beautiful environmental reflections to the dark monoliths */}
+        <Environment preset="studio" />
+        
+        {/* The Obsidian Corridor */}
+        <ObsidianCorridor />
       </Canvas>
     </div>
   );
