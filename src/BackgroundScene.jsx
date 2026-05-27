@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { MeshDistortMaterial, Environment } from '@react-three/drei';
+import { MeshDistortMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 import './BackgroundScene.css';
 
@@ -60,14 +60,14 @@ const ImmersiveCavern = () => {
         By setting side to BackSide, we render the INSIDE walls of the sphere!
       */}
       <MeshDistortMaterial
-        side={THREE.BackSide} // CRITICAL: This puts us inside the object
+        side={THREE.BackSide} 
         color="#ffffff"
         transparent={true}
-        opacity={0.15} // Highly transparent so the CSS mouse-gradient shines through
-        metalness={1} // Acts like a fluid mirror
-        roughness={0.1} // Extremely shiny
-        distort={0.5} // Aggressive liquid warping
-        speed={2} // Fluid speed
+        opacity={0.25} // Soft frosted transparency
+        metalness={0.1} // REMOVED mirror effect so it doesn't reflect a literal city
+        roughness={0.6} // Frosted, soft light scattering
+        distort={0.6} // Aggressive liquid warping
+        speed={1.5} // Smooth fluid speed
       />
     </mesh>
   );
@@ -117,8 +117,7 @@ const BackgroundScene = () => {
           color="#ff4081" 
         />
 
-        {/* Adds realistic environmental reflections to the fluid interior */}
-        <Environment preset="city" />
+        {/* Removed the city Environment map so it's purely abstract */}
         
         {/* The full-screen immersive liquid environment */}
         <ImmersiveCavern />
